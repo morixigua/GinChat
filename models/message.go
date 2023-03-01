@@ -76,7 +76,7 @@ func Chat(writer http.ResponseWriter, request *http.Request) {
 	rwLocker.Unlock()
 	//5.完成发送逻辑
 	go sendproc(node)
-	//6.完成接受逻辑
+	//6.完成接收逻辑
 	go recvProc(node)
 	sendMsg(userId, []byte("欢迎进入聊天系统"))
 }

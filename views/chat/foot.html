@@ -6,7 +6,8 @@
     }
 
     function upload(dom) {
-        uploadfile("v1/upload/image"+"?token="+util.parseQuery("token")+"&userId="+userId(), dom, function (res) {
+        //uploadfile("v1/upload/image"+"?token="+util.parseQuery("token")+"&userId="+userId(), dom, function (res) {
+        uploadfile("attach/upload", dom, function (res) {
             if (res.Code == 0) {
                 app.sendpicmsg(res.Data)
             }
@@ -206,7 +207,8 @@
                             console.log("检验是否可用");
                             this.recorder.ondataavailable = (event) => {
                                 console.log("ondataavailable");
-                                uploadblob("v1/upload/image"+"?token="+util.parseQuery("token")+"&userId="+userId(), event.data, ".mp3", res => {
+                                //uploadblob("v1/upload/image"+"?token="+util.parseQuery("token")+"&userId="+userId(), event.data, ".mp3", res => {
+                                uploadblob("attach/upload", event.data, ".mp3", res => {
                                     var duration = Math.ceil((new Date().getTime() - this.duration) / 1000);
                                     this.sendaudiomsg(res.Data, duration);
                                 })
