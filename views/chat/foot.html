@@ -513,7 +513,8 @@
                 },
                 loadcommunitys: function () {
                     var that = this;
-                    post("v1/relation/group_list"+"?token="+util.parseQuery("token")+"&userId="+userId(),{ ownerId: userId() }, function (res) {
+                    //post("v1/relation/group_list"+"?token="+util.parseQuery("token")+"&userId="+userId(),{ ownerId: userId() }, function (res) {
+                    post("contact/loadCommunity",{ ownerId: userId() }, function (res) {
                         that.communitys = res.Rows || [];
                     })
                 },
