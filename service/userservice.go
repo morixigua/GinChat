@@ -237,11 +237,11 @@ func AddFriend(c *gin.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	targetId, err := strconv.Atoi(c.Request.FormValue("targetId"))
+	targetName := c.Request.FormValue("targetName")
 	if err != nil {
 		log.Fatal(err)
 	}
-	code, msg := models.AddFriend(uint(userId), uint(targetId))
+	code, msg := models.AddFriend(uint(userId), targetName)
 	if code == 0 {
 		utils.RespOK(c.Writer, code, msg)
 	} else {
