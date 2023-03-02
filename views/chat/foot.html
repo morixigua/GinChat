@@ -569,10 +569,11 @@
                     //console.log("createcommunity")
                     this.com.ownerId = userId()
                     console.log(this.com)
-                    util.post("/v1/relation/new_group"+"?token="+util.parseQuery("token")+"&userId="+userId(), this.com).then(res => {
+                    //util.post("contact/createCommunity"+"?token="+util.parseQuery("token")+"&userId="+userId(), this.com).then(res => {
+                    util.post("contact/createCommunity", this.com).then(res => {
                         console.log(res)
-                        if (res.code != 0) {
-                            mui.toast(res.message)
+                        if (res.Code != 0) {
+                            mui.toast(res.Msg)
                         } else {
                             //location.replace("localhost:8081")
                             //location.href = "/"
