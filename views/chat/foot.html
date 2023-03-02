@@ -542,12 +542,13 @@
                         this.setTimeFlag()
                         //console.log("_addfriend....")
                         var that = this
-                        post("v1/relation/add"+"?token="+util.parseQuery("token")+"&userId="+userId(), { targetName: dstobj, userId: userId() }, function (res) {
-                            if (res.code == 0) {
+                        //post("v1/relation/add"+"?token="+util.parseQuery("token")+"&userId="+userId(), { targetName: dstobj, userId: userId() }, function (res) {
+                        post("contact/addFriend", { targetName: dstobj, userId: userId() }, function (res) {
+                            if (res.Code == 0) {
                                 mui.toast("添加成功");
                                 that.loadfriends();
                             } else {
-                                mui.toast(res.message);
+                                mui.toast(res.msg);
                             }
                         })
                     }

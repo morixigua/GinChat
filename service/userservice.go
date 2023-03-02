@@ -231,3 +231,20 @@ func SearchFriends(c *gin.Context) {
 	//	"data":    users,
 	//})
 }
+
+func AddFriend(c *gin.Context) {
+	userId, err := strconv.Atoi(c.Request.FormValue("userId"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	targetId, err := strconv.Atoi(c.Request.FormValue("targetId"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	code := models.AddFriend(uint(userId), uint(targetId))
+	if code == 0 {
+		utils.RespOK(c.Writer, code, "添加好友成功")
+	} else {
+		utils.RespFail(c.Writer, "添加好友失败")
+	}
+}

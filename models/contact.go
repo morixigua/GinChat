@@ -33,3 +33,25 @@ func SearchFriend(userId uint) []UserBasic {
 	//fmt.Println(users)
 	return users
 }
+
+func AddFriend(userId uint, targetId uint) int {
+	user := UserBasic{}
+	if targetId != 0 {
+		user = FindByID(targetId)
+		if user.Salt != "" {
+			contact := Contact{}
+			contact.OwnerId = userId
+			contact.TargetId = targetId
+			contact.Type = 1
+			utils.DB.Create(&contact)
+			//互相加
+			contact = Contact{}
+			contact.OwnerId = targetId
+			contact.TargetId = userId
+			contact.Type = 1
+			utils.DB.Create(&contact)
+			return 0
+		}
+	}
+	return -1
+}
