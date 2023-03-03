@@ -16,6 +16,7 @@ func Router() *gin.Engine {
 
 	//静态资源
 	r.Static("/asset", "asset/")
+	r.StaticFile("/favicon.ico", "asset/images/favicon.ico")
 	r.LoadHTMLGlob("views/**/*")
 	//首页
 	r.GET("/", service.GetIndex)
@@ -52,6 +53,7 @@ func Router() *gin.Engine {
 	//心跳续命 不合适 因为Node 所以前端发过来的消息再receProc里面处理
 	//r.POST("/user/heartbeat", service.Heartbeat)
 	//r.POST("/user/redisMsg", service.RedisMsg)
+	r.POST("/user/find", service.FindByID)
 
 	return r
 }

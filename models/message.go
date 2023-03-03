@@ -3,9 +3,9 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"ginchat/utils"
 	"github.com/fatih/set"
 	"github.com/gorilla/websocket"
+	"github.com/spf13/viper"
 	"gorm.io/gorm"
 	"net"
 	"net/http"
@@ -16,7 +16,7 @@ import (
 // Message 消息
 type Message struct {
 	gorm.Model
-	FormId   int64  //发送者
+	FormId   int64  `json:"userId"` //发送者
 	TargetId int64  //接收者
 	Type     int    //发送类型 1私聊 2群聊 3广播
 	Media    int    //消息类型 1文字 2表情包 3图片 4音频
@@ -124,7 +124,7 @@ func init() {
 func udpSendProc() {
 	con, err := net.DialUDP("udp", nil, &net.UDPAddr{
 		IP:   net.IPv4(192, 168, 0, 1),
-		Port: 3000,
+		Port: viper.GetInt("port.udp"),
 	})
 	defer con.Close()
 	if err != nil {
@@ -148,7 +148,7 @@ func udpSendProc() {
 func udpRecvProc() {
 	con, err := net.ListenUDP("udp", &net.UDPAddr{
 		IP:   net.IPv4zero,
-		Port: 3000,
+		Port: viper.GetInt("port.udp"),
 	})
 	defer con.Close()
 	if err != nil {
@@ -175,12 +175,15 @@ func dispatch(data []byte) {
 		fmt.Println(err)
 		return
 	}
+
+	//fmt.Println("解析数据:", msg, "msg.FormId", msg.FormId,
+	//	"targetId:", msg.TargetId, "type:", msg.Type)
+
 	switch msg.Type {
 	case 1: //私信
-		fmt.Println("dispatch data :", string(data))
 		sendMsg(msg.TargetId, data)
-		//case 2://群发
-		//	sendGroupMsg()
+	case 2: //群发
+		sendGroupMsg(msg.FormId, msg.TargetId, data)
 		//case 3://广播
 		//	sendAllMsg()
 		//case 4:
@@ -198,24 +201,12 @@ func sendMsg(userId int64, msg []byte) {
 	}
 }
 
-func JoinGroup(userId uint, comId string) (int, string) {
-	contact := Contact{}
-	community := Community{}
-
-	utils.DB.Where("id=? or name=?", comId, comId).Find(&community)
-	if community.Name == "" {
-		return -1, "没有找到群"
-	}
-	utils.DB.Where("owner_id= ? and target_id=? and type =2", userId,
-		community.ID).Find(&contact)
-	if !contact.CreatedAt.IsZero() {
-		return -1, "已加过此群"
-	} else {
-		contact = Contact{}
-		contact.OwnerId = userId
-		contact.TargetId = community.ID
-		contact.Type = 2
-		utils.DB.Create(&contact)
-		return 0, "加群成功"
+func sendGroupMsg(userId, targetId int64, msg []byte) {
+	fmt.Println("开始群发消息")
+	userIds := SearchUserByGroupId(uint(targetId))
+	for _, v := range userIds {
+		if v != uint(userId) {
+			sendMsg(int64(v), msg)
+		}
 	}
 }

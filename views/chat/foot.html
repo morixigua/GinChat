@@ -6,8 +6,7 @@
     }
 
     function upload(dom) {
-        //uploadfile("v1/upload/image"+"?token="+util.parseQuery("token")+"&userId="+userId(), dom, function (res) {
-        uploadfile("attach/upload", dom, function (res) {
+        uploadfile("attach/upload"+"?token="+util.parseQuery("token")+"&userId="+userId(), dom, function (res) {
             if (res.Code == 0) {
                 app.sendpicmsg(res.Data)
             }
@@ -15,7 +14,7 @@
     }
     //上传图片 创建群
     function uploadthis(dom) {
-        uploadfile("v1/upload/image"+"?token="+util.parseQuery("token")+"&userId="+userId(), dom, function (res) {
+        uploadfile("attach/upload"+"?token="+util.parseQuery("token")+"&userId="+userId(), dom, function (res) {
             if (res.Code == 0) {
                 app.com.icon = res.Data;
                 console.log(res.Data);
@@ -24,7 +23,7 @@
     }
     //维护用户头像
     function uploadUserInfo(dom) {
-        uploadfile("v1/upload/image"+"?token="+util.parseQuery("token")+"&userId="+userId() ,dom, function (res) {
+        uploadfile("attach/upload"+"?token="+util.parseQuery("token")+"&userId="+userId() ,dom, function (res) {
             if (res.Code == 0) {
                 app.info.icon = res.Data;
                 console.log(res.Data);
@@ -207,8 +206,7 @@
                             console.log("检验是否可用");
                             this.recorder.ondataavailable = (event) => {
                                 console.log("ondataavailable");
-                                //uploadblob("v1/upload/image"+"?token="+util.parseQuery("token")+"&userId="+userId(), event.data, ".mp3", res => {
-                                uploadblob("attach/upload", event.data, ".mp3", res => {
+                                uploadblob("attach/upload"+"?token="+util.parseQuery("token")+"&userId="+userId(), event.data, ".mp3", res => {
                                     var duration = Math.ceil((new Date().getTime() - this.duration) / 1000);
                                     this.sendaudiomsg(res.Data, duration);
                                 })
@@ -329,7 +327,7 @@
                         var msg = this.createmsgcontext();
                         msg.Media = 1;
                         msg.Content = txt;
-                        if (msg.Type == 1) {
+                        if (msg.Type == 1 ||msg.Type == 2) {
                             this.showmsg(userInfo(), msg);
                         }
 
@@ -500,8 +498,7 @@
                 },
                 loadfriends: function () {
                     var that = this;
-                    //post("searchFriends"+"?token="+util.parseQuery("token")+"&userId="+userId(), { userId: userId() }, function (res) {
-                    post("searchFriends",{userId: userId()}, function (res) {
+                    post("searchFriends"+"?token="+util.parseQuery("token")+"&userId="+userId(), { userId: userId() }, function (res) {
                         that.friends = res.Rows || [];
                         var usermap = this.usermap;
                         for (var i in res.Rows) {
@@ -513,8 +510,7 @@
                 },
                 loadcommunitys: function () {
                     var that = this;
-                    //post("v1/relation/group_list"+"?token="+util.parseQuery("token")+"&userId="+userId(),{ ownerId: userId() }, function (res) {
-                    post("contact/loadCommunity",{ ownerId: userId() }, function (res) {
+                    post("contact/loadCommunity"+"?token="+util.parseQuery("token")+"&userId="+userId(),{ ownerId: userId() }, function (res) {
                         that.communitys = res.Rows || [];
                     })
                 },
@@ -543,8 +539,7 @@
                         this.setTimeFlag()
                         //console.log("_addfriend....")
                         var that = this
-                        //post("v1/relation/add"+"?token="+util.parseQuery("token")+"&userId="+userId(), { targetName: dstobj, userId: userId() }, function (res) {
-                        post("contact/addFriend", { targetName: dstobj, userId: userId() }, function (res) {
+                        post("contact/addFriend"+"?token="+util.parseQuery("token")+"&userId="+userId(), { targetName: dstobj, userId: userId() }, function (res) {
                             if (res.Code == 0) {
                                 mui.toast("添加成功");
                                 that.loadfriends();
@@ -570,8 +565,7 @@
                     //console.log("createcommunity")
                     this.com.ownerId = userId()
                     console.log(this.com)
-                    //util.post("contact/createCommunity"+"?token="+util.parseQuery("token")+"&userId="+userId(), this.com).then(res => {
-                    util.post("contact/createCommunity", this.com).then(res => {
+                    util.post("contact/createCommunity"+"?token="+util.parseQuery("token")+"&userId="+userId(), this.com).then(res => {
                         console.log(res)
                         if (res.Code != 0) {
                             mui.toast(res.Msg)
@@ -658,7 +652,7 @@
                     if (this.webSocket.readyState == 1) {  //失去连接 3
                         var msg = this.createmsgcontext();
                         msg.Media = -1;
-                        msg.Type = 0
+                        msg.Type = 3
                         msg.Content = "心跳";
                         //this.showmsg(userInfo(),msg);
                         this.webSocket.send(JSON.stringify(msg))
