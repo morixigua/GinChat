@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"ginchat/utils"
 	"github.com/fatih/set"
 	"github.com/gorilla/websocket"
 	"gorm.io/gorm"
@@ -194,5 +195,27 @@ func sendMsg(userId int64, msg []byte) {
 	rwLocker.RUnlock()
 	if ok {
 		node.DataQueue <- msg
+	}
+}
+
+func JoinGroup(userId uint, comId string) (int, string) {
+	contact := Contact{}
+	community := Community{}
+
+	utils.DB.Where("id=? or name=?", comId, comId).Find(&community)
+	if community.Name == "" {
+		return -1, "没有找到群"
+	}
+	utils.DB.Where("owner_id= ? and target_id=? and type =2", userId,
+		community.ID).Find(&contact)
+	if !contact.CreatedAt.IsZero() {
+		return -1, "已加过此群"
+	} else {
+		contact = Contact{}
+		contact.OwnerId = userId
+		contact.TargetId = community.ID
+		contact.Type = 2
+		utils.DB.Create(&contact)
+		return 0, "加群成功"
 	}
 }

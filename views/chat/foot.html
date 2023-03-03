@@ -616,13 +616,13 @@
                         this.setTimeFlag();
                         var that = this;
                         console.log(that);
-                        post("v1/relation/join_group"+"?token="+util.parseQuery("token")+"&userId="+userId(), { comId: dstobj, "userId": userId() }, function (res) {
-                            if (res.code == 0) {
+                        post("contact/joinGroup"+"?token="+util.parseQuery("token")+"&userId="+userId(), { comId: dstobj, "userId": userId() }, function (res) {
+                            if (res.Code == 0) {
                                 mui.toast("添加成功");
 
                                 that.loadcommunitys();
                             } else {
-                                mui.toast(res.message);
+                                mui.toast(res.Msg);
                             }
                         })
                     }
