@@ -154,10 +154,16 @@ func UpdateUser(c *gin.Context) {
 	user := models.UserBasic{}
 	id, _ := strconv.Atoi(c.PostForm("id"))
 	user.ID = uint(id)
-	user.Name = c.PostForm("name")
-	user.PassWord = c.PostForm("password")
-	user.Phone = c.PostForm("phone")
-	user.Email = c.PostForm("email")
+	if name := c.PostForm("name"); name != "" {
+		user.Name = name
+	}
+	//user.PassWord = c.PostForm("password")
+	//user.Phone = c.PostForm("phone")
+	//user.Email = c.PostForm("email")
+	if avatar := c.PostForm("icon"); avatar != "" {
+		fmt.Println(avatar)
+		user.Avatar = avatar
+	}
 	fmt.Println("update:", user)
 	_, err := govalidator.ValidateStruct(user) //govalidator校验电话号码和邮箱
 	if err != nil {
@@ -172,7 +178,7 @@ func UpdateUser(c *gin.Context) {
 	models.UpdateUser(user)
 	c.JSON(http.StatusOK, gin.H{
 		"code":    0, //0成功,-1失败
-		"message": "修改用户成功",
+		"message": "修改用户成功!",
 		"data":    user,
 	})
 }

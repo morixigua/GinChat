@@ -22,6 +22,7 @@ type UserBasic struct {
 	LoginOutTime  time.Time `gorm:"column:login_out_time" json:"login_out_time"` //登出时间
 	IsLogout      bool
 	DeviceInfo    string
+	Avatar        string //头像
 }
 
 func (table *UserBasic) TableName() string {
@@ -72,6 +73,7 @@ func UpdateUser(user UserBasic) *gorm.DB {
 		PassWord: user.PassWord,
 		Phone:    user.Phone,
 		Email:    user.Email,
+		Avatar:   user.Avatar,
 	})
 }
 

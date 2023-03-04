@@ -581,7 +581,13 @@
                 updateUserInfo() {
                     //console.log("createcommunity")
                     this.info.id = userId()
-                    util.post("v1/user/updata"+"?token="+util.parseQuery("token")+"&userId="+userId(), this.info).then(res => {
+                    if (this.info.icon===undefined){
+                        this.info.icon=""
+                    }
+                    if (this.info.name===undefined){
+                        this.info.name=""
+                    }
+                    util.post("user/updateUser"+"?token="+util.parseQuery("token")+"&userId="+userId(), this.info).then(res => {
                         console.log(res)
                         let userInfo = JSON.parse(sessionStorage.getItem('userinfo') || '{}');
                         userInfo.Avatar = this.info.icon;
