@@ -655,6 +655,7 @@
                     }, 100)
                 },
                 heartbeat() {
+                    //console.log("心跳............")
                     if (this.webSocket.readyState == 1) {  //失去连接 3
                         var msg = this.createmsgcontext();
                         msg.Media = -1;
@@ -663,10 +664,7 @@
                         //this.showmsg(userInfo(),msg);
                         this.webSocket.send(JSON.stringify(msg))
                     }
-
                 }
-
-
             },
             watch: {
                 "win": function (n, o) {

@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 )
 
 // Message 消息
@@ -32,13 +33,17 @@ func (table *Message) TableName() string {
 }
 
 type Node struct {
-	Conn      *websocket.Conn
-	DataQueue chan []byte
-	GroupSets set.Interface
+	Conn          *websocket.Conn //连接
+	Addr          string          //客户端地址
+	FirstTime     uint64          //首次连接时间
+	HeartbeatTime uint64          //心跳时间
+	LoginTime     uint64          //登录时间
+	DataQueue     chan []byte     //消息
+	GroupSets     set.Interface   //好友  群
 }
 
 // 映射关系
-var clienMap = make(map[int64]*Node, 0)
+var clientMap = make(map[int64]*Node, 0)
 
 // 读写锁
 var rwLocker sync.RWMutex
@@ -65,15 +70,19 @@ func Chat(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	//2.获取conn
+	currentTime := uint64(time.Now().Unix())
 	node := &Node{
-		Conn:      conn,
-		DataQueue: make(chan []byte, 50),
-		GroupSets: set.New(set.ThreadSafe),
+		Conn:          conn,
+		Addr:          conn.RemoteAddr().String(), //客户端地址
+		HeartbeatTime: currentTime,                //心跳时间
+		LoginTime:     currentTime,                //登录时间
+		DataQueue:     make(chan []byte, 50),
+		GroupSets:     set.New(set.ThreadSafe),
 	}
 	//3.用户关系
 	//4.userid 跟node 绑定 并加锁
 	rwLocker.Lock()
-	clienMap[userId] = node
+	clientMap[userId] = node
 	rwLocker.Unlock()
 	//5.完成发送逻辑
 	go sendproc(node)
@@ -102,9 +111,20 @@ func recvProc(node *Node) {
 			fmt.Println(err)
 			return
 		}
-		dispatch(data)
-		broadMsg(data) //todo 将消息广播到局域网
-		fmt.Println("[ws] recvProc <<<<<<", string(data))
+		msg := Message{}
+		err = json.Unmarshal(data, &msg)
+		if err != nil {
+			fmt.Println(err)
+		}
+		//心跳检测 msg.Media == -1 || msg.Type == 3
+		if msg.Type == 3 {
+			currentTime := uint64(time.Now().Unix())
+			node.Heartbeat(currentTime)
+		} else {
+			dispatch(data)
+			broadMsg(data) //todo 将消息广播到局域网
+			fmt.Println("[ws] recvProc <<<<<<", string(data))
+		}
 	}
 }
 
@@ -117,7 +137,7 @@ func broadMsg(data []byte) {
 func init() {
 	go udpSendProc()
 	go udpRecvProc()
-	fmt.Println("init goroutine....")
+	//fmt.Println("init goroutine....")
 }
 
 // 完成udp数据发送协程
@@ -194,7 +214,7 @@ func dispatch(data []byte) {
 func sendMsg(userId int64, msg []byte) {
 	fmt.Println("sendMsg >>>>> userId :", userId, "  msg:", string(msg))
 	rwLocker.RLock()
-	node, ok := clienMap[userId]
+	node, ok := clientMap[userId]
 	rwLocker.RUnlock()
 	if ok {
 		node.DataQueue <- msg
@@ -209,4 +229,43 @@ func sendGroupMsg(userId, targetId int64, msg []byte) {
 			sendMsg(int64(v), msg)
 		}
 	}
+}
+
+// Heartbeat
+// 更新用户心跳
+func (node *Node) Heartbeat(currentTime uint64) {
+	node.HeartbeatTime = currentTime
+	return
+}
+
+// CleanConnection
+// 清理超时连接
+func CleanConnection(param interface{}) (result bool) {
+	result = true
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("cleanConnection err", r)
+		}
+	}()
+	//fmt.Println("定时任务,清理超时连接 ", param)
+	//node.IsHeartbeatTimeOut()
+	currentTime := uint64(time.Now().Unix())
+	for i := range clientMap {
+		node := clientMap[i]
+		if node.IsHeartbeatTimeOut(currentTime) {
+			fmt.Println("心跳超时..... 关闭连接：")
+			node.Conn.Close()
+		}
+	}
+	return result
+}
+
+// IsHeartbeatTimeOut
+// 用户心跳是否超时
+func (node *Node) IsHeartbeatTimeOut(currentTime uint64) (timeout bool) {
+	if node.HeartbeatTime+uint64(viper.GetInt("timeout.HeartbeatMaxTime")) <= currentTime {
+		fmt.Println("心跳超时。。。自动下线")
+		timeout = true
+	}
+	return
 }

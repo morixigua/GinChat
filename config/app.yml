@@ -9,3 +9,7 @@ redis:
 port:
   server: ":8081"
   udp: 3000
+timeout:
+  DelayHeartbeat: 3
+  HeartbeatHz: 6
+  HeartbeatMaxTime: 30
