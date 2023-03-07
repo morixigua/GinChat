@@ -375,7 +375,7 @@
                     if (this.isDisable) {
                         //首次读取某个用户的消息记录
                         if (this.isReadRedisMsg.filter(item => item === user.ID).length <= 0) {
-                            post("v1/user/redisMsg"+"?token="+util.parseQuery("token")+"&userId="+userId(), { userIdA: userId(), userIdB: user.ID, start: this.start, end: this.end, isRev: false }, function (res) {
+                            post("user/redisMsg"+"?token="+util.parseQuery("token")+"&userId="+userId(), { userIdA: userId(), userIdB: user.ID, start: this.start, end: this.end, isRev: false }, function (res) {
                                 //循环读取的消息记录 并显示
                                 for (var i in res.Total) {
                                     this.showmsg(user, JSON.parse(res.Total[i]), false, true)

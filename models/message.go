@@ -1,9 +1,12 @@
 package models
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"ginchat/utils"
 	"github.com/fatih/set"
+	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
@@ -17,20 +20,22 @@ import (
 // Message 消息
 type Message struct {
 	gorm.Model
-	FormId   int64  `json:"userId"` //发送者
-	TargetId int64  //接收者
-	Type     int    //发送类型 1私聊 2群聊 3广播
-	Media    int    //消息类型 1文字 2表情包 3图片 4音频
-	Content  string //消息内容
-	Pic      string
-	Url      string
-	Desc     string
-	Amount   int //其他数字统计
+	FormId     int64  `json:"userId"` //发送者
+	TargetId   int64  //接收者
+	Type       int    //发送类型 1私聊 2群聊 3广播
+	Media      int    //消息类型 1文字 2表情包 3图片 4音频
+	Content    string //消息内容
+	Pic        string
+	Url        string
+	Desc       string
+	Amount     int    //其他数字统计
+	CreateTime uint64 //创建时间
+	ReadTime   uint64 //读取时间
 }
 
-func (table *Message) TableName() string {
-	return "message"
-}
+//func (table *Message) TableName() string {
+//	return "message"
+//}
 
 type Node struct {
 	Conn          *websocket.Conn //连接
@@ -88,7 +93,11 @@ func Chat(writer http.ResponseWriter, request *http.Request) {
 	go sendproc(node)
 	//6.完成接收逻辑
 	go recvProc(node)
-	sendMsg(userId, []byte("欢迎进入聊天系统"))
+	//sendMsg(userId, []byte("欢迎进入聊天系统"))
+
+	//加入在线用户到缓存,用reids通过id设置一个键 set key value
+	SetUserOnlineInfo("online_"+Id, []byte(node.Addr),
+		time.Duration(viper.GetInt("timeout.RedisOnlineTime"))*time.Hour)
 }
 func sendproc(node *Node) {
 	for {
@@ -119,6 +128,7 @@ func recvProc(node *Node) {
 		//心跳检测 msg.Media == -1 || msg.Type == 3
 		if msg.Type == 3 {
 			currentTime := uint64(time.Now().Unix())
+			//fmt.Println(currentTime)
 			node.Heartbeat(currentTime)
 		} else {
 			dispatch(data)
@@ -190,6 +200,7 @@ func udpRecvProc() {
 // 后端调度逻辑处理
 func dispatch(data []byte) {
 	msg := Message{}
+	msg.CreateTime = uint64(time.Now().Unix())
 	err := json.Unmarshal(data, &msg)
 	if err != nil {
 		fmt.Println(err)
@@ -212,13 +223,40 @@ func dispatch(data []byte) {
 }
 
 func sendMsg(userId int64, msg []byte) {
-	fmt.Println("sendMsg >>>>> userId :", userId, "  msg:", string(msg))
 	rwLocker.RLock()
 	node, ok := clientMap[userId]
 	rwLocker.RUnlock()
+	jsonMsg := Message{}
+	json.Unmarshal(msg, &jsonMsg)
+	ctx := context.Background()
+	targetIdStr := strconv.Itoa(int(userId))
+	userIdStr := strconv.Itoa(int(jsonMsg.FormId))
+	//通过redis获取发送到对方id的地址 get key
+	r, err := utils.Red.Get(ctx, "online_"+targetIdStr).Result()
+	if err == redis.Nil {
+		fmt.Println(err)
+	} else if err != nil {
+		panic(err)
+	}
 	if ok {
+		fmt.Println("sendMsg >>>>> userId :", userId, "  msg:", string(msg), " addr:", r)
 		node.DataQueue <- msg
 	}
+	var key string
+	if userId > jsonMsg.FormId {
+		key = "msg_" + userIdStr + "_" + targetIdStr
+	} else {
+		key = "msg_" + targetIdStr + "_" + userIdStr
+	}
+	//redis> ZADD msg_9_10 1 msg的类
+	res, e := utils.Red.ZAdd(ctx, key, &redis.Z{1, msg}).Result()
+	//jsonMsg类  用msg会:用此复合文字会使用给定值分配新的 struct 实例。
+	//res, e := utils.Red.Do(ctx, "zadd", key, 1, jsonMsg).Result()
+	//备用 后续拓展 记录完整msg
+	if e != nil {
+		fmt.Println(e)
+	}
+	fmt.Println(res)
 }
 
 func sendGroupMsg(userId, targetId int64, msg []byte) {
@@ -268,4 +306,38 @@ func (node *Node) IsHeartbeatTimeOut(currentTime uint64) (timeout bool) {
 		timeout = true
 	}
 	return
+}
+
+// MarshalBinary
+// 需要重写此方法才能完整的msg转byte[]
+func (msg Message) MarshalBinary() ([]byte, error) {
+	return json.Marshal(msg)
+}
+
+// RedisMsg
+// 获取缓存里面的消息
+func RedisMsg(userIdA int64, userIdB int64) {
+	rwLocker.RLock()
+	node, _ := clientMap[userIdA]
+	rwLocker.RUnlock()
+	//jsonMsg := Message{}
+	//json.Unmarshal(msg, &jsonMsg)
+	ctx := context.Background()
+	userIdStr := strconv.Itoa(int(userIdA))
+	targetIdStr := strconv.Itoa(int(userIdB))
+	var key string
+	if userIdA > userIdB {
+		key = "msg_" + targetIdStr + "_" + userIdStr
+	} else {
+		key = "msg_" + userIdStr + "_" + targetIdStr
+	}
+	//ZRANGE msg_9_10 0 10 WITHSCORES
+	rels, err := utils.Red.ZRange(ctx, key, 0, 10).Result()
+	if err != nil {
+		fmt.Println(err) //没有找到
+	}
+	for _, val := range rels {
+		fmt.Println("sendMsg >>> userID: ", userIdA, "  msg:", val)
+		node.DataQueue <- []byte(val)
+	}
 }

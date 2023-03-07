@@ -18,14 +18,14 @@ func Timer(delay, tick time.Duration, fun TimerFunc, param interface{}) {
 		if fun == nil {
 			return
 		}
-		t := time.NewTimer(delay * 1000 * 1000 * 1000)
+		t := time.NewTimer(delay * time.Second)
 		for {
 			select {
 			case <-t.C:
 				if fun(param) == false {
 					return
 				}
-				t.Reset(tick * 1000 * 1000 * 1000)
+				t.Reset(tick * time.Second)
 			}
 		}
 	}()

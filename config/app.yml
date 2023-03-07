@@ -11,5 +11,6 @@ port:
   udp: 3000
 timeout:
   DelayHeartbeat: 3
-  HeartbeatHz: 6
-  HeartbeatMaxTime: 30
+  HeartbeatHz: 30
+  HeartbeatMaxTime: 30000
+  RedisOnlineTime: 4
