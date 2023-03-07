@@ -260,9 +260,13 @@ func AddFriend(c *gin.Context) {
 func CreateCommunity(c *gin.Context) {
 	ownerId, _ := strconv.Atoi(c.Request.FormValue("ownerId"))
 	name := c.Request.FormValue("name")
+	icon := c.Request.FormValue("icon")
+	desc := c.Request.FormValue("desc")
 	community := models.Community{}
 	community.OwnerId = uint(ownerId)
 	community.Name = name
+	community.Img = icon
+	community.Desc = desc
 	code, msg := models.CreateCommunity(community)
 	if code == 0 {
 		utils.RespOK(c.Writer, code, msg)
@@ -309,6 +313,7 @@ func RedisMsg(c *gin.Context) {
 	userIdB, _ := strconv.Atoi(c.PostForm("userIdB"))
 	start, _ := strconv.Atoi(c.PostForm("start"))
 	end, _ := strconv.Atoi(c.PostForm("end"))
-	res := models.RedisMsg(int64(userIdA), int64(userIdB), int64(start), int64(end))
+	isRev, _ := strconv.ParseBool(c.PostForm("isRev"))
+	res := models.RedisMsg(int64(userIdA), int64(userIdB), int64(start), int64(end), isRev)
 	utils.RespOKList(c.Writer, "ok", res)
 }

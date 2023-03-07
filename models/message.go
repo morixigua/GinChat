@@ -324,7 +324,7 @@ func (msg Message) MarshalBinary() ([]byte, error) {
 
 // RedisMsg
 // 获取缓存里面的消息
-func RedisMsg(userIdA, userIdB, start, end int64) []string {
+func RedisMsg(userIdA, userIdB, start, end int64, isRev bool) []string {
 	//rwLocker.RLock()
 	//node, ok := clientMap[userIdA]
 	//rwLocker.RUnlock()
@@ -340,7 +340,13 @@ func RedisMsg(userIdA, userIdB, start, end int64) []string {
 		key = "msg_" + userIdStr + "_" + targetIdStr
 	}
 	//ZRANGE msg_9_10 0 10 WITHSCORES 查十条,ZREVRANGE倒序查10条
-	rels, err := utils.Red.ZRevRange(ctx, key, start, end).Result()
+	var rels []string
+	var err error
+	if isRev {
+		rels, err = utils.Red.ZRange(ctx, key, start, end).Result()
+	} else {
+		rels, err = utils.Red.ZRevRange(ctx, key, start, end).Result()
+	}
 	if err != nil {
 		fmt.Println(err) //没有找到
 	}
