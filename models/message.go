@@ -231,6 +231,7 @@ func sendMsg(userId int64, msg []byte) {
 	ctx := context.Background()
 	targetIdStr := strconv.Itoa(int(userId))
 	userIdStr := strconv.Itoa(int(jsonMsg.FormId))
+	jsonMsg.CreateTime = uint64(time.Now().Unix())
 	//通过redis获取发送到对方id的地址 get key
 	r, err := utils.Red.Get(ctx, "online_"+targetIdStr).Result()
 	if err == redis.Nil {
@@ -248,15 +249,22 @@ func sendMsg(userId int64, msg []byte) {
 	} else {
 		key = "msg_" + targetIdStr + "_" + userIdStr
 	}
+	res, err := utils.Red.ZRevRange(ctx, key, 0, -1).Result()
+	if err == redis.Nil {
+		fmt.Println(err)
+	} else if err != nil {
+		panic(err)
+	}
+	score := float64(cap(res)) + 1
 	//redis> ZADD msg_9_10 1 msg的类
-	res, e := utils.Red.ZAdd(ctx, key, &redis.Z{1, msg}).Result()
+	ress, e := utils.Red.ZAdd(ctx, key, &redis.Z{score, msg}).Result()
 	//jsonMsg类  用msg会:用此复合文字会使用给定值分配新的 struct 实例。
 	//res, e := utils.Red.Do(ctx, "zadd", key, 1, jsonMsg).Result()
 	//备用 后续拓展 记录完整msg
 	if e != nil {
 		fmt.Println(e)
 	}
-	fmt.Println(res)
+	fmt.Println(ress)
 }
 
 func sendGroupMsg(userId, targetId int64, msg []byte) {
@@ -316,10 +324,10 @@ func (msg Message) MarshalBinary() ([]byte, error) {
 
 // RedisMsg
 // 获取缓存里面的消息
-func RedisMsg(userIdA int64, userIdB int64) {
-	rwLocker.RLock()
-	node, _ := clientMap[userIdA]
-	rwLocker.RUnlock()
+func RedisMsg(userIdA, userIdB, start, end int64) []string {
+	//rwLocker.RLock()
+	//node, ok := clientMap[userIdA]
+	//rwLocker.RUnlock()
 	//jsonMsg := Message{}
 	//json.Unmarshal(msg, &jsonMsg)
 	ctx := context.Background()
@@ -331,13 +339,21 @@ func RedisMsg(userIdA int64, userIdB int64) {
 	} else {
 		key = "msg_" + userIdStr + "_" + targetIdStr
 	}
-	//ZRANGE msg_9_10 0 10 WITHSCORES
-	rels, err := utils.Red.ZRange(ctx, key, 0, 10).Result()
+	//ZRANGE msg_9_10 0 10 WITHSCORES 查十条,ZREVRANGE倒序查10条
+	rels, err := utils.Red.ZRevRange(ctx, key, start, end).Result()
 	if err != nil {
 		fmt.Println(err) //没有找到
 	}
-	for _, val := range rels {
-		fmt.Println("sendMsg >>> userID: ", userIdA, "  msg:", val)
-		node.DataQueue <- []byte(val)
-	}
+	// 发送推送消息
+	/**
+	// 后台通过websocket 推送消息
+	if ok {
+		for _, val := range rels {
+			fmt.Println("sendMsg >>> userID: ", userIdA, "  msg:", val)
+			node.DataQueue <- []byte(val)
+		}
+	} else {
+		fmt.Println("读取redisMsg 未登录")
+	}**/
+	return rels
 }
