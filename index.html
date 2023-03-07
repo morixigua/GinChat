@@ -72,6 +72,8 @@
                         //location.replace("//127.0.0.1:8000/toChat?userId="+res.userId+"&token="+res.tokens)
                         var url="/toChat?userId="+res.data.ID+"&token="+res.data.Identity
                         //location.replace("localhost:8081"+url)
+                        userInfo(res.data)
+                        userId(res.data.id)
                         location.href=url
                     }
                 })
